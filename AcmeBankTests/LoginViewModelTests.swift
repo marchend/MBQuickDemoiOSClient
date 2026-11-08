@@ -32,6 +32,39 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isSignInEnabled)
     }
 
+    /// Pins the whitespace-only semantics, which the AC ("both fields
+    /// non-empty") leaves open. `isSignInEnabled` is a plain `isEmpty` check
+    /// (LoginViewModel.swift:28-30), so `"   "` counts as filled: Sign in is
+    /// enabled, the empty-field guard in `signIn()` does not fire, and the
+    /// value goes to `/api/login` untrimmed — the backend stays the authority
+    /// on whether it is a valid credential.
+    ///
+    /// This is the behaviour we intend today, asserted so it is not merely
+    /// incidental: adding `trimmingCharacters(in: .whitespaces)` later must
+    /// fail here and be a deliberate, reviewed change rather than a silent one.
+    func test_isSignInEnabled_treatsWhitespaceOnlyInputAsFilled_andSendsItUntrimmed() async {
+        let stub = MockAuthService()
+        let viewModel = LoginViewModel(authService: stub, sessionStore: SessionStore())
+
+        viewModel.username = "   "
+        viewModel.password = "\t"
+
+        XCTAssertTrue(
+            viewModel.isSignInEnabled,
+            "whitespace is deliberately not trimmed before the empty check"
+        )
+
+        await viewModel.signIn()
+
+        XCTAssertEqual(
+            stub.callCount,
+            1,
+            "the empty-field guard does not treat whitespace-only input as empty"
+        )
+        XCTAssertEqual(stub.receivedUsername, "   ", "username is forwarded untrimmed")
+        XCTAssertEqual(stub.receivedPassword, "\t", "password is forwarded untrimmed")
+    }
+
     // MARK: - Success
 
     func test_signIn_success_storesSessionInSessionStore() async {
