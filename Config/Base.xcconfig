@@ -1,0 +1,14 @@
+//
+// Base.xcconfig
+//
+// Base build configuration for the AcmeBank app target — committed,
+// non-secret. Points at the Mock Backend running locally by default; this is
+// not a credential, so (unlike Okta-style secrets in other projects) no
+// gitignored/local split is needed here.
+//
+// NOTE: a bare "//" starts a comment ANYWHERE in an xcconfig line, so any
+// "://" inside a value must be written ":/$()/" — the empty $() build-setting
+// macro expands to nothing, breaking up the "//" without appearing in the
+// expanded value. Forgetting this silently truncates the value at the first
+// "//".
+API_BASE_URL = http:/$()/localhost:3000

@@ -1,0 +1,15 @@
+# Xcode / XcodeGen
+#
+# The Xcode project itself is generated from project.yml via
+# `xcodegen generate` — never commit the generated project or user-specific
+# Xcode state.
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+.build/
+*.swiftpm/
+.swiftpm/
+
+# macOS
+.DS_Store
