@@ -23,6 +23,13 @@ targets:
       - path: AcmeBank
         excludes:
           - "Info.plist"
+      # Contract types: `Generated/acme-mock-backend-login-v1/` is NOT
+      # committed at this head (confirmed — the path does not exist in the
+      # worktree), so it is deliberately not listed: `xcodegen generate`
+      # hard-fails on a missing source path and would break the build for
+      # everyone. When the generated tree lands, wire it in here so the app
+      # target compiles it and `AuthService` can drop its hand-written DTOs:
+      #   - path: Generated/acme-mock-backend-login-v1
     configFiles:
       Debug: Config/Base.xcconfig
       Release: Config/Base.xcconfig

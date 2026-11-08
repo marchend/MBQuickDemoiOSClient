@@ -1,9 +1,9 @@
 import XCTest
 @testable import AcmeBank
 
-/// Minimal smoke coverage for `SessionStore` — confirms the test target is
-/// wired correctly (links against the app module) ahead of the dedicated
-/// `LoginViewModelTests` suite that lands in the next PR.
+/// Coverage for `SessionStore`, the source of truth `RootView` branches on.
+/// The login flow's own branching logic is covered by `LoginViewModelTests`
+/// and `AuthServiceTests` in this target.
 final class SessionStoreTests: XCTestCase {
     @MainActor
     func test_initialSession_isNil() {

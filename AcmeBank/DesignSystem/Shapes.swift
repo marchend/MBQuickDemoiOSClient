@@ -27,14 +27,22 @@ struct HexagonShape: Shape {
 }
 
 /// The Okta "ring + dot" mark, composed from two `Circle`s — no image asset.
-/// Reused in the top strip and the footer.
+/// Reused in the top strip and the footer, which the mockup renders in two
+/// different colours: navy (`#16223C`) in the top strip, and the same muted
+/// grey (`#6D727F`) as the surrounding "Secured by okta" text in the footer.
+/// The colour is therefore a parameter — filling navy unconditionally put a
+/// navy mark in the middle of grey footer text.
 struct OktaMarkView: View {
+    /// Fill/stroke colour for the ring and dot. Defaults to the top strip's
+    /// navy; the footer passes `.acmeMutedText`.
+    var color: Color = .acmeNavy
+
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.acmeNavy, lineWidth: 2.5)
+                .stroke(color, lineWidth: 2.5)
             Circle()
-                .fill(Color.acmeNavy)
+                .fill(color)
                 .padding(5)
         }
     }
@@ -51,6 +59,8 @@ struct OktaMarkView: View {
                     .foregroundStyle(.white)
             )
         OktaMarkView()
+            .frame(width: 32, height: 32)
+        OktaMarkView(color: .acmeMutedText)
             .frame(width: 32, height: 32)
     }
     .padding()

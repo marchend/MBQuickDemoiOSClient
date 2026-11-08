@@ -22,15 +22,35 @@ protocol AuthServiceProtocol {
     func login(username: String, password: String) async throws -> LoginResult
 }
 
-/// Request body for `POST /api/login`, matching the Mock Backend's contract
-/// exactly: `{ "username", "password" }`.
+// MARK: - Wire DTOs
+//
+// CONTRACT GAP (raised in PR #1 review, MBQUIC-7): these two types are
+// hand-written stand-ins for the `acme-mock-backend-login-v1` payloads, and
+// `LoginResponse` is what `APIClient.post` actually decodes at runtime.
+//
+// They are NOT generated, and they are NOT checked against the published
+// contract: the generated tree `Generated/acme-mock-backend-login-v1/` does
+// not exist at this head (confirmed by searching the whole worktree — the
+// string `acme-mock-backend-login-v1` appears nowhere but in this comment),
+// so there is no symbol to import and nothing for the codegen conformance
+// gate to bind to. Until that tree is committed and added to the app target
+// in `project.yml`, a contract change (renamed key, newly nullable field,
+// added enum case) will NOT fail the build.
+//
+// Interim guard: `AuthServiceTests` drives the real decode path through
+// `APIClient` with the documented payload, so an accidental rename on OUR
+// side fails the suite. That is a regression test, not a conformance test —
+// it cannot catch the backend moving first. Replace both types with the
+// generated ones as soon as the tree lands.
+
+/// Request body for `POST /api/login`: `{ "username", "password" }`.
 private struct LoginRequest: Encodable {
     let username: String
     let password: String
 }
 
-/// Success response body for `POST /api/login`, matching the Mock Backend's
-/// contract exactly: `{ "token", "customerId", "firstName" }`.
+/// Success response body for `POST /api/login`:
+/// `{ "token", "customerId", "firstName" }`.
 private struct LoginResponse: Decodable {
     let token: String
     let customerId: String

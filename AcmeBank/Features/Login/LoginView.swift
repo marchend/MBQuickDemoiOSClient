@@ -18,6 +18,20 @@ struct LoginView: View {
 
     @FocusState private var focusedField: Field?
 
+    /// Opacity of the Sign in button while it is disabled (either field
+    /// empty).
+    ///
+    /// Explicit decision on the ambiguity raised in review:
+    /// `updated_login_screen.png` shows the button at full navy in a state
+    /// (username empty, password filled) that this code dims, so the two
+    /// disagree. We keep the dim: an inert control must not look identical
+    /// to an active one — dropping it leaves a tappable-looking button that
+    /// silently does nothing, which is the worse user-facing outcome. The
+    /// mockup is read as an idealised render of the filled-in screen. If
+    /// design pins the screenshot instead, set this to `1` and the
+    /// `.disabled(…)` behaviour below still holds.
+    private static let disabledSignInOpacity: Double = 0.5
+
     var body: some View {
         VStack(spacing: 0) {
             topStrip
@@ -191,7 +205,7 @@ struct LoginView: View {
             .padding(.vertical, 16)
             .background(Color.acmeNavy)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .opacity(viewModel.isSignInEnabled ? 1 : 0.5)
+            .opacity(viewModel.isSignInEnabled ? 1 : Self.disabledSignInOpacity)
         }
         .disabled(!viewModel.isSignInEnabled || viewModel.isLoading)
     }
@@ -205,7 +219,9 @@ struct LoginView: View {
                 Text("Secured by")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.acmeMutedText)
-                OktaMarkView()
+                // The mockup draws the footer mark in the same muted grey as
+                // the text around it (#6D727F), not the top strip's navy.
+                OktaMarkView(color: .acmeMutedText)
                     .frame(width: 16, height: 16)
                 Text("okta")
                     .font(.system(size: 15, weight: .semibold))

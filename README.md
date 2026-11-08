@@ -29,7 +29,12 @@ demo credentials: `bankuser.one@acmebank.com` / `Password123`.
 - `AcmeBank/DesignSystem` — shared colours and vector shapes (hexagon logo,
   Okta mark) — navy/white/grey only, no image assets.
 - `AcmeBank/Features/Login` — the login screen (`LoginView` + `LoginViewModel`).
-- `AcmeBankTests` — XCTest unit tests (ViewModel-level; no XCUITest yet).
+- `AcmeBankTests` — XCTest unit tests (no XCUITest yet):
+  `LoginViewModelTests` (error mapping, loading state, re-entrancy guard,
+  session hand-off) against a stubbed `AuthServiceProtocol`;
+  `AuthServiceTests` (401/500 mapping and payload decode through the real
+  `APIClient` path, with a `URLProtocol` stub in place of the network);
+  `SessionStoreTests`.
 
 Real Okta/OIDC auth, Keychain-backed session persistence, and the post-login
 Landing Screen are out of scope for the login screen story — a placeholder
