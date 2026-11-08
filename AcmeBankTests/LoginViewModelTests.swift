@@ -8,10 +8,34 @@ import XCTest
 @MainActor
 final class LoginViewModelTests: XCTestCase {
 
+    // MARK: - isSignInEnabled
+
+    func test_isSignInEnabled_falseWhenEitherFieldEmpty() {
+        let viewModel = LoginViewModel(authService: MockAuthService(), sessionStore: SessionStore())
+
+        XCTAssertFalse(viewModel.isSignInEnabled, "both fields empty")
+
+        viewModel.username = "bankuser.one@acmebank.com"
+        XCTAssertFalse(viewModel.isSignInEnabled, "username alone is not enough")
+
+        viewModel.username = ""
+        viewModel.password = "Password123"
+        XCTAssertFalse(viewModel.isSignInEnabled, "password alone is not enough")
+    }
+
+    func test_isSignInEnabled_trueWhenBothFieldsNonEmpty() {
+        let viewModel = LoginViewModel(authService: MockAuthService(), sessionStore: SessionStore())
+
+        viewModel.username = "bankuser.one@acmebank.com"
+        viewModel.password = "Password123"
+
+        XCTAssertTrue(viewModel.isSignInEnabled)
+    }
+
     // MARK: - Success
 
-    func test_signIn_onSuccess_populatesSessionAndClearsLoading() async {
-        let stub = StubAuthService()
+    func test_signIn_success_storesSessionInSessionStore() async {
+        let stub = MockAuthService()
         let sessionStore = SessionStore()
         let viewModel = makeViewModel(authService: stub, sessionStore: sessionStore)
 
@@ -29,8 +53,8 @@ final class LoginViewModelTests: XCTestCase {
 
     // MARK: - Error mapping
 
-    func test_signIn_onInvalidCredentials_showsCredentialsMessageAndNoSession() async {
-        let stub = StubAuthService()
+    func test_signIn_invalidCredentials_setsIncorrectCredentialsMessage() async {
+        let stub = MockAuthService()
         stub.result = .failure(AuthError.invalidCredentials)
         let sessionStore = SessionStore()
         let viewModel = makeViewModel(authService: stub, sessionStore: sessionStore)
@@ -45,8 +69,8 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isLoading)
     }
 
-    func test_signIn_onServerError_showsUnreachableMessage() async {
-        let stub = StubAuthService()
+    func test_signIn_networkOrServerError_setsUnreachableMessage() async {
+        let stub = MockAuthService()
         stub.result = .failure(AuthError.server)
         let sessionStore = SessionStore()
         let viewModel = makeViewModel(authService: stub, sessionStore: sessionStore)
@@ -60,10 +84,11 @@ final class LoginViewModelTests: XCTestCase {
         XCTAssertNil(sessionStore.session)
     }
 
-    /// Anything the service throws that isn't an `AuthError` still has to
-    /// land on the generic message rather than escaping uncaught.
-    func test_signIn_onUnexpectedError_showsUnreachableMessage() async {
-        let stub = StubAuthService()
+    /// Anything the service throws that isn't an `AuthError` — e.g. a raw
+    /// transport failure — still has to land on the generic message rather
+    /// than escaping uncaught.
+    func test_signIn_onUnexpectedTransportError_setsUnreachableMessage() async {
+        let stub = MockAuthService()
         stub.result = .failure(URLError(.notConnectedToInternet))
         let viewModel = makeViewModel(authService: stub, sessionStore: SessionStore())
 
@@ -75,9 +100,29 @@ final class LoginViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Error clearing
+
+    func test_errorMessage_clearsOnFieldEdit() async {
+        let stub = MockAuthService()
+        stub.result = .failure(AuthError.invalidCredentials)
+        let viewModel = makeViewModel(authService: stub, sessionStore: SessionStore())
+
+        await viewModel.signIn()
+        XCTAssertNotNil(viewModel.errorMessage, "precondition: an error is showing")
+
+        viewModel.username = "someone-else@acmebank.com"
+        XCTAssertNil(viewModel.errorMessage, "editing username should clear the error")
+
+        await viewModel.signIn()
+        XCTAssertNotNil(viewModel.errorMessage, "precondition: an error is showing again")
+
+        viewModel.password = "AnotherPassword1"
+        XCTAssertNil(viewModel.errorMessage, "editing password should clear the error")
+    }
+
     /// A stale error must not survive the next attempt.
     func test_signIn_clearsPreviousErrorBeforeRetrying() async {
-        let stub = StubAuthService()
+        let stub = MockAuthService()
         stub.result = .failure(AuthError.invalidCredentials)
         let sessionStore = SessionStore()
         let viewModel = makeViewModel(authService: stub, sessionStore: sessionStore)
@@ -97,7 +142,7 @@ final class LoginViewModelTests: XCTestCase {
     // MARK: - Loading state
 
     func test_signIn_isLoadingIsTrueInFlight_andClearedOnSuccess() async {
-        let stub = StubAuthService()
+        let stub = MockAuthService()
         let viewModel = makeViewModel(authService: stub, sessionStore: SessionStore())
         let loadingInFlight = Box(false)
         stub.whileInFlight = {
@@ -111,7 +156,7 @@ final class LoginViewModelTests: XCTestCase {
     }
 
     func test_signIn_isLoadingIsClearedWhenTheCallThrows() async {
-        let stub = StubAuthService()
+        let stub = MockAuthService()
         stub.result = .failure(AuthError.server)
         let viewModel = makeViewModel(authService: stub, sessionStore: SessionStore())
         let loadingInFlight = Box(false)
@@ -127,20 +172,8 @@ final class LoginViewModelTests: XCTestCase {
 
     // MARK: - Guards
 
-    func test_isSignInEnabled_requiresBothFields() {
-        let viewModel = LoginViewModel(authService: StubAuthService(), sessionStore: SessionStore())
-
-        XCTAssertFalse(viewModel.isSignInEnabled)
-
-        viewModel.username = "bankuser.one@acmebank.com"
-        XCTAssertFalse(viewModel.isSignInEnabled, "username alone is not enough")
-
-        viewModel.password = "Password123"
-        XCTAssertTrue(viewModel.isSignInEnabled)
-    }
-
     func test_signIn_withEmptyFields_doesNotCallTheService() async {
-        let stub = StubAuthService()
+        let stub = MockAuthService()
         let viewModel = LoginViewModel(authService: stub, sessionStore: SessionStore())
 
         await viewModel.signIn()
@@ -152,7 +185,7 @@ final class LoginViewModelTests: XCTestCase {
     /// The `!isLoading` half of the guard: a second tap while the first
     /// request is still in flight must be dropped, not duplicated.
     func test_signIn_whileAlreadyInFlight_doesNotIssueASecondRequest() async {
-        let stub = StubAuthService()
+        let stub = MockAuthService()
         let viewModel = makeViewModel(authService: stub, sessionStore: SessionStore())
         stub.whileInFlight = {
             await viewModel.signIn()
@@ -174,29 +207,6 @@ final class LoginViewModelTests: XCTestCase {
         viewModel.username = "bankuser.one@acmebank.com"
         viewModel.password = "Password123"
         return viewModel
-    }
-}
-
-/// Records what the ViewModel asked for and returns a canned result, with a
-/// hook that runs *inside* the call so a test can observe in-flight state.
-private final class StubAuthService: AuthServiceProtocol {
-    var result: Result<LoginResult, Error> = .success(
-        LoginResult(token: "token-123", customerId: "cust-1", firstName: "Taylor")
-    )
-
-    private(set) var callCount = 0
-    private(set) var receivedUsername: String?
-    private(set) var receivedPassword: String?
-
-    /// Invoked after the call is recorded but before it returns.
-    var whileInFlight: (() async -> Void)?
-
-    func login(username: String, password: String) async throws -> LoginResult {
-        callCount += 1
-        receivedUsername = username
-        receivedPassword = password
-        await whileInFlight?()
-        return try result.get()
     }
 }
 
