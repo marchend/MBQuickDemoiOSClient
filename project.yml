@@ -1,0 +1,68 @@
+name: AcmeBank
+
+options:
+  bundleIdPrefix: com.acmebank
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+
+targets:
+  AcmeBank:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: AcmeBank
+        excludes:
+          - "Info.plist"
+    configFiles:
+      Debug: Config/Base.xcconfig
+      Release: Config/Base.xcconfig
+    settings:
+      base:
+        PRODUCT_NAME: AcmeBank
+        PRODUCT_BUNDLE_IDENTIFIER: com.acmebank.AcmeBank
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: AcmeBank/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_EMIT_LOC_STRINGS: NO
+      configs:
+        Debug:
+          ENABLE_TESTABILITY: YES
+
+  AcmeBankTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: AcmeBankTests
+    dependencies:
+      - target: AcmeBank
+    settings:
+      base:
+        PRODUCT_NAME: AcmeBankTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.acmebank.AcmeBankTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AcmeBank.app/AcmeBank"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+schemes:
+  AcmeBank:
+    build:
+      targets:
+        AcmeBank: all
+        AcmeBankTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: AcmeBankTests
